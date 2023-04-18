@@ -1,6 +1,6 @@
 import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
 import icon from '../../assets/icon.svg';
-import Graphics from './components/Graphics';
+import Babylon from './components/Babylon';
 
 import './App.css';
 
@@ -37,7 +37,7 @@ function Hello() {
           </button>
         </a>
       </div>
-      <Graphics />
+      <Babylon />
     </div>
   );
 }

@@ -88,6 +88,11 @@ const configuration: webpack.Configuration = {
           'file-loader',
         ],
       },
+      // VTK
+      {
+        test: /\.(vtk|vtp|e)$/i,
+        use: 'file-loader',
+      },
     ],
   },
 

@@ -1,18 +1,32 @@
 {
   "compilerOptions": {
+    // 只编译修改过的文件
     "incremental": true,
+    // 指定 ECMAScript 目标版本
     "target": "es2021",
+    // 指定使用模块
     "module": "commonjs",
+    // 指定目标运行环境
     "lib": ["dom", "es2021"],
+    // 指定 jsx 代码的生成
     "jsx": "react-jsx",
+    // 是否开启严格模式
     "strict": true,
+    // 用来指定编译时是否生成 .map 文件
     "sourceMap": true,
+    // 模块解析
     "baseUrl": "./src",
+    // 用于选择模块解析策略
     "moduleResolution": "node",
+    // 为导入内容创建命名空间
     "esModuleInterop": true,
+    // 用来指定允许从没有默认导出的模块中默认导入
     "allowSyntheticDefaultImports": true,
+    // 能够导入 json 文件
     "resolveJsonModule": true,
+    // 允许编译JS
     "allowJs": true,
+    // 编译后的文件存到哪个目录下
     "outDir": ".erb/dll"
   },
   "exclude": ["test", "release/build", "release/app/dist", ".erb/dll"]

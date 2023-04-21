@@ -7,5 +7,5 @@ export default function () {
     init();
   }, []);
 
-  return <div id="render-div"></div>;
+  return <div id="render-container"></div>;
 }

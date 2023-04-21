@@ -38,7 +38,7 @@ function init() {
   // Add the actor to the renderer and set the camera based on it
   // ----------------------------------------------------------------------------
 
-  // renderer.addActor(actor);
+  renderer.addActor(actor);
   renderer.resetCamera();
 
   // ----------------------------------------------------------------------------
@@ -52,7 +52,7 @@ function init() {
   // Create a div section to put this into
   // ----------------------------------------------------------------------------
 
-  const container = document.getElementById('render-div');
+  const container = document.getElementById('render-container');
   if (!container) return;
   openGLRenderWindow.setContainer(container);
 
@@ -80,11 +80,10 @@ function init() {
     vtkInteractorStyleTrackballCamera.newInstance()
   );
 
+  // 加载 vtk 文件
   function loadVtkFile(url) {
-    // 创建 vtkPolyDataReader 对象并加载 vtk 文件
     const reader = vtkPolyDataReader.newInstance();
     reader.setUrl(url).then(() => {
-      // 从读取器获取输出数据并将其添加到渲染器中
       const polydata = reader.getOutputData(0);
       const mapper = vtkMapper.newInstance();
       const actor = vtkActor.newInstance();
@@ -96,6 +95,7 @@ function init() {
     });
   }
 
+  // 加载 vtp 文件
   function loadVtpFile(url) {
     const reader = vtkXMLPolyDataReader.newInstance();
     reader.setUrl(url).then(() => {
@@ -111,7 +111,7 @@ function init() {
   }
 
   // loadVtkFile(vtkFileUrl);
-  loadVtpFile(vtpFileUrl);
+  // loadVtpFile(vtpFileUrl);
 }
 
 export { init };

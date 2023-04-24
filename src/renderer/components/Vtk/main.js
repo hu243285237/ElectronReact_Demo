@@ -16,9 +16,12 @@ import {
   ColorMode,
   ScalarMode,
 } from '@kitware/vtk.js/Rendering/Core/Mapper/Constants';
+import vtkHttpDataAccessHelper from '@kitware/vtk.js/IO/Core/DataAccessHelper/HttpDataAccessHelper';
 
-import vtkFileUrl from '../../../../assets/vtk/sphere.vtk';
+import vtkFileUrl from '../../../../assets/vtk/bunny.vtk';
 import vtpFileUrl from '../../../../assets/vtp/earth.vtp';
+
+const { fetchBinary } = vtkHttpDataAccessHelper;
 
 /**
  * vtkjs 初始化
@@ -52,19 +55,39 @@ async function init() {
   // const coneActor = createConeActor();
   // renderer.addActor(coneActor);
 
+  // 加载序列集
+  const actor = vtkActor.newInstance();
+  const mapper = vtkMapper.newInstance();
+  actor.setMapper(mapper);
+  const data = await loadTimeSeries();
+  const timeSeriesData = data.filter((ds) => getDataTimeStep(ds) !== null);
+  timeSeriesData.sort((a, b) => getDataTimeStep(a) - getDataTimeStep(b));
+  setVisibleDataset(actor, timeSeriesData[0]);
+  renderer.addActor(actor);
+  renderer.resetCamera();
+  renderWindow.render();
+
+  let index = 0;
+  setInterval(() => {
+    setVisibleDataset(actor, timeSeriesData[index++]);
+    renderer.resetCamera();
+    renderWindow.render();
+    if (index === timeSeriesData.length) index = 0;
+  }, 500);
+
   // 加载 vtk 文件
-  // const vtkActor = await loadVtkFile(vtkFileUrl);
-  // renderer.addActor(vtkActor);
+  // const actor = await loadVtkFile(vtkFileUrl);
+  // renderer.addActor(actor);
 
   // 加载 vtp 文件
-  const vtpActor = await loadVtpFile(vtpFileUrl);
-  renderer.addActor(vtpActor);
+  // const actor = await loadVtpFile(vtpFileUrl);
+  // renderer.addActor(actor);
 
   // 设置颜色映射
-  setLookupTable(vtpActor);
+  setLookupTable(actor);
 
   // 创建颜色标尺
-  const scalarBar = createScalarBar(vtpActor.getMapper());
+  const scalarBar = createScalarBar(actor.getMapper());
   renderer.addActor(scalarBar);
 
   // 重置摄像机并渲染
@@ -124,12 +147,12 @@ async function loadVtkFile(url) {
  * @returns 加载成功时返回 actor
  */
 async function loadVtpFile(url) {
-  const vtkReader = vtkXMLPolyDataReader.newInstance();
+  const reader = vtkXMLPolyDataReader.newInstance();
   return new Promise((resolve, reject) => {
-    vtkReader
+    reader
       .setUrl(url)
       .then(() => {
-        const source = vtkReader.getOutputData(0);
+        const source = reader.getOutputData(0);
         const mapper = vtkMapper.newInstance();
         const actor = vtkActor.newInstance();
         actor.setMapper(mapper);
@@ -138,6 +161,51 @@ async function loadVtpFile(url) {
       })
       .catch(reject);
   });
+}
+
+/**
+ * 加载序列集
+ * @returns dataset 集合
+ */
+async function loadTimeSeries() {
+  const BASE_URL = 'https://kitware.github.io/vtk-js-datasets/data/vtp/can/';
+  const files = [
+    'can_0.vtp',
+    'can_5.vtp',
+    'can_10.vtp',
+    'can_15.vtp',
+    'can_20.vtp',
+    'can_25.vtp',
+    'can_30.vtp',
+    'can_35.vtp',
+    'can_40.vtp',
+  ];
+  return await Promise.all(
+    files.map((filename) => {
+      return new Promise((resolve, reject) => {
+        fetchBinary(`${BASE_URL}/${filename}`).then((binary) => {
+          const reader = vtkXMLPolyDataReader.newInstance();
+          reader.parseAsArrayBuffer(binary);
+          resolve(reader.getOutputData(0));
+        });
+      });
+    })
+  );
+}
+
+function setVisibleDataset(actor, ds) {
+  const mapper = actor.getMapper();
+  mapper.setInputData(ds);
+  // renderer.resetCamera();
+  // renderWindow.render();
+}
+
+function getDataTimeStep(vtkObj) {
+  const arr = vtkObj.getFieldData().getArrayByName('TimeValue');
+  if (arr) {
+    return arr.getData()[0];
+  }
+  return null;
 }
 
 /**

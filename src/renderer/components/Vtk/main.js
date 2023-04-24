@@ -9,109 +9,184 @@ import vtkRenderer from '@kitware/vtk.js/Rendering/Core/Renderer';
 import vtkInteractorStyleTrackballCamera from '@kitware/vtk.js/Interaction/Style/InteractorStyleTrackballCamera';
 import vtkXMLPolyDataReader from '@kitware/vtk.js/IO/XML/XMLPolyDataReader';
 import vtkPolyDataReader from '@kitware/vtk.js/IO/Legacy/PolyDataReader';
+import vtkColorMaps from '@kitware/vtk.js/Rendering/Core/ColorTransferFunction/ColorMaps';
+import vtkScalarBarActor from '@kitware/vtk.js/Rendering/Core/ScalarBarActor';
+import vtkColorTransferFunction from '@kitware/vtk.js/Rendering/Core/ColorTransferFunction';
+import {
+  ColorMode,
+  ScalarMode,
+} from '@kitware/vtk.js/Rendering/Core/Mapper/Constants';
 
 import vtkFileUrl from '../../../../assets/vtk/sphere.vtk';
-import vtpFileUrl from '../../../../assets/vtp/test.vtp';
+import vtpFileUrl from '../../../../assets/vtp/earth.vtp';
 
-function init() {
-  // ----------------------------------------------------------------------------
-  // Standard rendering code setup
-  // ----------------------------------------------------------------------------
-
-  const renderWindow = vtkRenderWindow.newInstance();
+/**
+ * vtkjs 初始化
+ */
+async function init() {
+  // 设置 renderer 和窗口视图
   const renderer = vtkRenderer.newInstance({ background: [0.2, 0.3, 0.4] });
+  const renderWindow = vtkRenderWindow.newInstance();
   renderWindow.addRenderer(renderer);
-
-  // ----------------------------------------------------------------------------
-  // Simple pipeline ConeSource --> Mapper --> Actor
-  // ----------------------------------------------------------------------------
-
-  const coneSource = vtkConeSource.newInstance({ height: 1.0 });
-
-  const mapper = vtkMapper.newInstance();
-  mapper.setInputConnection(coneSource.getOutputPort());
-
-  const actor = vtkActor.newInstance();
-  actor.setMapper(mapper);
-
-  // ----------------------------------------------------------------------------
-  // Add the actor to the renderer and set the camera based on it
-  // ----------------------------------------------------------------------------
-
-  renderer.addActor(actor);
-  renderer.resetCamera();
-
-  // ----------------------------------------------------------------------------
-  // Use OpenGL as the backend to view the all this
-  // ----------------------------------------------------------------------------
-
   const openGLRenderWindow = vtkOpenGLRenderWindow.newInstance();
   renderWindow.addView(openGLRenderWindow);
-
-  // ----------------------------------------------------------------------------
-  // Create a div section to put this into
-  // ----------------------------------------------------------------------------
-
   const container = document.getElementById('render-container');
-  if (!container) return;
+  if (!container) {
+    console.error('error render element id');
+    return;
+  }
   openGLRenderWindow.setContainer(container);
-
-  // ----------------------------------------------------------------------------
-  // Capture size of the container and set it to the renderWindow
-  // ----------------------------------------------------------------------------
-
   const { width, height } = container.getBoundingClientRect();
   openGLRenderWindow.setSize(width, height);
 
-  // ----------------------------------------------------------------------------
-  // Setup an interactor to handle mouse events
-  // ----------------------------------------------------------------------------
-
+  // 设置交互方式
   const interactor = vtkRenderWindowInteractor.newInstance();
   interactor.setView(openGLRenderWindow);
   interactor.initialize();
   interactor.bindEvents(container);
-
-  // ----------------------------------------------------------------------------
-  // Setup interactor style to use
-  // ----------------------------------------------------------------------------
-
   interactor.setInteractorStyle(
     vtkInteractorStyleTrackballCamera.newInstance()
   );
 
+  // 创建圆锥演员
+  // const coneActor = createConeActor();
+  // renderer.addActor(coneActor);
+
   // 加载 vtk 文件
-  function loadVtkFile(url) {
-    const reader = vtkPolyDataReader.newInstance();
-    reader.setUrl(url).then(() => {
-      const polydata = reader.getOutputData(0);
-      const mapper = vtkMapper.newInstance();
-      const actor = vtkActor.newInstance();
-      actor.setMapper(mapper);
-      mapper.setInputData(polydata);
-      renderer.addActor(actor);
-      renderer.resetCamera();
-      renderWindow.render();
-    });
-  }
+  // const vtkActor = await loadVtkFile(vtkFileUrl);
+  // renderer.addActor(vtkActor);
 
   // 加载 vtp 文件
-  function loadVtpFile(url) {
-    const reader = vtkXMLPolyDataReader.newInstance();
-    reader.setUrl(url).then(() => {
-      const polydata = reader.getOutputData(0);
-      const mapper = vtkMapper.newInstance();
-      const actor = vtkActor.newInstance();
-      actor.setMapper(mapper);
-      mapper.setInputData(polydata);
-      renderer.addActor(actor);
-      renderer.resetCamera();
-      renderWindow.render();
-    });
-  }
+  const vtpActor = await loadVtpFile(vtpFileUrl);
+  renderer.addActor(vtpActor);
 
-  // loadVtkFile(vtkFileUrl);
-  // loadVtpFile(vtpFileUrl);
+  // 设置颜色映射
+  setLookupTable(vtpActor);
+
+  // 创建颜色标尺
+  const scalarBar = createScalarBar(vtpActor.getMapper());
+  renderer.addActor(scalarBar);
+
+  // 重置摄像机并渲染
+  renderer.resetCamera();
+  renderWindow.render();
+}
+
+/**
+ * 创建圆锥演员
+ * @returns 返回圆锥演员
+ */
+function createConeActor() {
+  const coneSource = vtkConeSource.newInstance({ height: 1.0 });
+  const mapper = vtkMapper.newInstance();
+  mapper.setInputConnection(coneSource.getOutputPort());
+  const actor = vtkActor.newInstance();
+  actor.setMapper(mapper);
+  return actor;
+}
+
+/**
+ * 创建颜色标尺
+ * @param {vtkMapper} mapper 对应的映射器
+ * @returns 返回标尺演员
+ */
+function createScalarBar(mapper) {
+  const scalarBarActor = vtkScalarBarActor.newInstance();
+  scalarBarActor.setScalarsToColors(mapper.getLookupTable());
+  return scalarBarActor;
+}
+
+/**
+ * 加载 vtk 文件
+ * @param {string} url vtk 文件路径地址
+ * @returns 加载成功时返回 actor
+ */
+async function loadVtkFile(url) {
+  const reader = vtkPolyDataReader.newInstance();
+  return new Promise((resolve, reject) => {
+    reader
+      .setUrl(url)
+      .then(() => {
+        const source = reader.getOutputData(0);
+        const mapper = vtkMapper.newInstance();
+        const actor = vtkActor.newInstance();
+        actor.setMapper(mapper);
+        mapper.setInputData(source);
+        resolve(actor);
+      })
+      .catch(reject);
+  });
+}
+
+/**
+ * 加载 vtp 文件
+ * @param {string} url vtp 文件路径地址
+ * @returns 加载成功时返回 actor
+ */
+async function loadVtpFile(url) {
+  const vtkReader = vtkXMLPolyDataReader.newInstance();
+  return new Promise((resolve, reject) => {
+    vtkReader
+      .setUrl(url)
+      .then(() => {
+        const source = vtkReader.getOutputData(0);
+        const mapper = vtkMapper.newInstance();
+        const actor = vtkActor.newInstance();
+        actor.setMapper(mapper);
+        mapper.setInputData(source);
+        resolve(actor);
+      })
+      .catch(reject);
+  });
+}
+
+/**
+ * 设置演员的颜色映射
+ * @param {vtkActor} actor
+ */
+function setLookupTable(actor) {
+  const mapper = actor.getMapper();
+  const input = mapper.getInputData();
+  const pointData = input.getPointData();
+  let scalars = pointData.getScalars();
+  let arrayName = '';
+  let colorMode = ColorMode.DEFAULT;
+  let scalarMode = ScalarMode.DEFAULT;
+  if (!scalars) {
+    try {
+      console.log(
+        'pointData.getScalars fail, try to use pointData.getArrayByName get scalars data'
+      );
+      const arrays = pointData.getArrays()[0];
+      if (!arrays) {
+        console.error('this file dont have any scalars data');
+      }
+      arrayName = arrays.getName();
+      scalars = pointData.getArrayByName(arrayName);
+      colorMode = ColorMode.MAP_SCALARS;
+      scalarMode = ScalarMode.USE_POINT_FIELD_DATA;
+    } catch (e) {
+      console.error('get scalars error: ', e);
+    }
+  }
+  const lookupTable = vtkColorTransferFunction.newInstance();
+  const dataRange = [].concat(scalars ? scalars.getRange() : [0, 1]);
+  if (dataRange[0] === dataRange[1]) {
+    console.error(`setLookupTable: get same dataRange, both: ${dataRange[0]}`);
+  }
+  const preset = vtkColorMaps.getPresetByName('Cool to Warm');
+  lookupTable.applyColorMap(preset);
+  lookupTable.setMappingRange(dataRange[0], dataRange[1]);
+  lookupTable.updateRange();
+  mapper.set({
+    colorMode,
+    scalarMode,
+    lookupTable,
+    interpolateScalarsBeforeMapping: false,
+    useLookupTableScalarRange: true,
+    scalarVisibility: true,
+    colorByArrayName: arrayName,
+  });
 }
 
 export { init };

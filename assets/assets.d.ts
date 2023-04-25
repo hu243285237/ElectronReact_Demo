@@ -33,3 +33,13 @@ declare module '*.css' {
   const content: Styles;
   export default content;
 }
+
+declare module '*.vtk' {
+  const content: string;
+  export default content;
+}
+
+declare module '*.vtp' {
+  const content: string;
+  export default content;
+}

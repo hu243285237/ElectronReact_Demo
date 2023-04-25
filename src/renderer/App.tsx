@@ -1,9 +1,24 @@
 import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
-import icon from '../../assets/icon.svg';
-import Babylon from './components/Babylon';
-import Vtk from './components/Vtk';
+import { VtkFileType } from '@/utils/enum';
+import Vtk from '@/renderer/components/Vtk';
+
+import icon from '@assets/icon.svg';
+import vtkFileUrl from '@assets/vtk/bunny.vtk';
+import vtpFileUrl from '@assets/vtp/earth.vtp';
 
 import './App.scss';
+
+const seriesVtpUrl = [
+  'https://kitware.github.io/vtk-js-datasets/data/vtp/can/can_0.vtp',
+  'https://kitware.github.io/vtk-js-datasets/data/vtp/can/can_5.vtp',
+  'https://kitware.github.io/vtk-js-datasets/data/vtp/can/can_10.vtp',
+  'https://kitware.github.io/vtk-js-datasets/data/vtp/can/can_15.vtp',
+  'https://kitware.github.io/vtk-js-datasets/data/vtp/can/can_20.vtp',
+  'https://kitware.github.io/vtk-js-datasets/data/vtp/can/can_25.vtp',
+  'https://kitware.github.io/vtk-js-datasets/data/vtp/can/can_30.vtp',
+  'https://kitware.github.io/vtk-js-datasets/data/vtp/can/can_35.vtp',
+  'https://kitware.github.io/vtk-js-datasets/data/vtp/can/can_40.vtp',
+];
 
 function Hello() {
   return (
@@ -38,8 +53,20 @@ function Hello() {
           </button>
         </a>
       </div>
-      {/* <Babylon /> */}
-      <Vtk />
+      <ul className="vtk-container-list">
+        <li className="vtk-container-item">
+          <p>series .vtp file</p>
+          <Vtk fileType={VtkFileType.VTP} url={seriesVtpUrl} />
+        </li>
+        <li className="vtk-container-item">
+          <p>single .vtk file</p>
+          <Vtk fileType={VtkFileType.VTK} url={vtkFileUrl} />
+        </li>
+        <li className="vtk-container-item">
+          <p>single .vtp file</p>
+          <Vtk fileType={VtkFileType.VTP} url={vtpFileUrl} />
+        </li>
+      </ul>
     </div>
   );
 }

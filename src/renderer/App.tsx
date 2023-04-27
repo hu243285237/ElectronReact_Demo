@@ -19,6 +19,9 @@ const seriesVtpUrl = [
   'https://kitware.github.io/vtk-js-datasets/data/vtp/can/can_35.vtp',
   'https://kitware.github.io/vtk-js-datasets/data/vtp/can/can_40.vtp',
 ];
+const httpDataSetUrl = 'https://kitware.github.io/vtk-js/data/cow.vtp';
+const seriesHttpDataSetUrl =
+  'https://kitware.github.io/vtk-js-datasets/data/temporal';
 
 function Hello() {
   return (
@@ -55,16 +58,24 @@ function Hello() {
       </div>
       <ul className="vtk-container-list">
         <li className="vtk-container-item">
-          <p>series .vtp file</p>
-          <Vtk fileType={VtkFileType.VTP} url={seriesVtpUrl} />
-        </li>
-        <li className="vtk-container-item">
-          <p>single .vtk file</p>
+          <p>single .vtk file use polyDataReader</p>
           <Vtk fileType={VtkFileType.VTK} url={vtkFileUrl} />
         </li>
         <li className="vtk-container-item">
-          <p>single .vtp file</p>
+          <p>single .vtp file use XMLPolyDataReader</p>
           <Vtk fileType={VtkFileType.VTP} url={vtpFileUrl} />
+        </li>
+        <li className="vtk-container-item">
+          <p>series .vtp file use XMLPolyDataReader and httpDataAccessHelper</p>
+          <Vtk fileType={VtkFileType.VTP} url={seriesVtpUrl} isSeries />
+        </li>
+        <li className="vtk-container-item">
+          <p>single .vtp gz file use httpDataSetReader</p>
+          <Vtk url={httpDataSetUrl} isHttpDataSet />
+        </li>
+        <li className="vtk-container-item">
+          <p>series .vtp gz file use httpDataSetReaderSeries</p>
+          <Vtk url={seriesHttpDataSetUrl} isHttpDataSet isSeries />
         </li>
       </ul>
     </div>

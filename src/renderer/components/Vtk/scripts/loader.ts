@@ -1,9 +1,15 @@
+import '@kitware/vtk.js/Rendering/Profiles/Geometry';
+import '@kitware/vtk.js/IO/Core/DataAccessHelper/HtmlDataAccessHelper';
+import '@kitware/vtk.js/IO/Core/DataAccessHelper/HttpDataAccessHelper';
+import '@kitware/vtk.js/IO/Core/DataAccessHelper/JSZipDataAccessHelper';
 import vtkActor from '@kitware/vtk.js/Rendering/Core/Actor';
 import vtkMapper from '@kitware/vtk.js/Rendering/Core/Mapper';
 import vtkDataSet from '@kitware/vtk.js/Common/DataModel/DataSet';
 import vtkPolyData from '@kitware/vtk.js/Common/DataModel/PolyData';
 import vtkPolyDataReader from '@kitware/vtk.js/IO/Legacy/PolyDataReader';
 import vtkXMLPolyDataReader from '@kitware/vtk.js/IO/XML/XMLPolyDataReader';
+import vtkHttpDataSetReader from '@kitware/vtk.js/IO/Core/HttpDataSetReader';
+import vtkHttpDataSetSeriesReader from '@kitware/vtk.js/IO/Core/HttpDataSetSeriesReader';
 import vtkHttpDataAccessHelper from '@kitware/vtk.js/IO/Core/DataAccessHelper/HttpDataAccessHelper';
 
 import { getDataTimeStep, setVisibleDataset } from './tool';
@@ -18,20 +24,7 @@ const { fetchBinary } = vtkHttpDataAccessHelper;
  */
 export async function loadVtkFile(url: string): Promise<vtkActor | void> {
   const reader = vtkPolyDataReader.newInstance();
-  try {
-    return new Promise((resolve) => {
-      reader.setUrl(url).then(() => {
-        const source = reader.getOutputData(0);
-        const mapper = vtkMapper.newInstance();
-        const actor = vtkActor.newInstance();
-        actor.setMapper(mapper);
-        mapper.setInputData(source);
-        resolve(actor);
-      });
-    });
-  } catch (e: any) {
-    console.error(e);
-  }
+  return await loadFile(reader, url);
 }
 
 /**
@@ -41,15 +34,41 @@ export async function loadVtkFile(url: string): Promise<vtkActor | void> {
  */
 export async function loadVtpFile(url: string): Promise<vtkActor | void> {
   const reader = vtkXMLPolyDataReader.newInstance();
+  return await loadFile(reader, url);
+}
+
+/**
+ * 使用 httpDataSet 加载文件
+ * @param url 文件路径地址
+ * @returns 加载成功时返回 actor
+ */
+export async function loadWithHttpDataSet(
+  url: string
+): Promise<vtkActor | void> {
+  const reader = vtkHttpDataSetReader.newInstance({ fetchGzip: true });
+  return await loadFile(reader, url);
+}
+
+/**
+ * 使用 httpDataSetSeries 加载文件
+ * @param url 文件路径地址
+ * @returns 加载成功时返回 actor、reader 和 timeSteps
+ */
+export async function loadWithHttpDataSetSeries(url: string): Promise<{
+  actor: vtkActor;
+  reader: vtkHttpDataSetSeriesReader;
+  timeSteps: Array<number>;
+} | void> {
+  const reader = vtkHttpDataSetSeriesReader.newInstance({ fetchGzip: true });
   try {
-    return new Promise((resolve) => {
+    return await new Promise((resolve) => {
       reader.setUrl(url).then(() => {
-        const source = reader.getOutputData(0);
         const mapper = vtkMapper.newInstance();
         const actor = vtkActor.newInstance();
         actor.setMapper(mapper);
-        mapper.setInputData(source);
-        resolve(actor);
+        mapper.setInputConnection(reader.getOutputPort());
+        const timeSteps = reader.getTimeSteps();
+        resolve({ actor, reader, timeSteps });
       });
     });
   } catch (e: any) {
@@ -89,6 +108,32 @@ export async function loadSeriesVtpFile(
     );
     setVisibleDataset(actor, seriesDataset[0]);
     return { actor, seriesDataset };
+  } catch (e: any) {
+    console.error(e);
+  }
+}
+
+/**
+ * 加载单个文件通用方法
+ * @param reader 使用的读取器
+ * @param url 文件路径地址
+ * @returns 加载成功时返回 actor
+ */
+async function loadFile(
+  reader: vtkPolyDataReader | vtkXMLPolyDataReader | vtkHttpDataSetReader,
+  url: string
+): Promise<vtkActor | void> {
+  try {
+    return new Promise((resolve) => {
+      reader.setUrl(url).then(() => {
+        const source = reader.getOutputData(0);
+        const mapper = vtkMapper.newInstance();
+        const actor = vtkActor.newInstance();
+        actor.setMapper(mapper);
+        mapper.setInputData(source);
+        resolve(actor);
+      });
+    });
   } catch (e: any) {
     console.error(e);
   }

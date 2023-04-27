@@ -6,6 +6,7 @@ import {
   ColorMode,
   ScalarMode,
 } from '@kitware/vtk.js/Rendering/Core/Mapper/Constants';
+import vtkHttpDataSetSeriesReader from '@kitware/vtk.js/IO/Core/HttpDataSetSeriesReader';
 
 /**
  * 获取时间步长
@@ -97,6 +98,29 @@ export function playSeriesDataset(
   return setInterval(() => {
     setVisibleDataset(actor, seriesDataset[index++]);
     index === seriesDataset.length && (index = 0);
+    callback();
+  }, ms);
+}
+
+/**
+ * 播放时间步数
+ * @param reader 读取器
+ * @param timeSteps 时间步数数组
+ * @param ms 执行时间间隔
+ * @param callback 执行回调函数
+ * @returns 返回定时器
+ */
+export function playTimeSteps(
+  reader: vtkHttpDataSetSeriesReader,
+  timeSteps: Array<number>,
+  ms: number,
+  callback: Function
+): NodeJS.Timer {
+  let index = 0;
+  return setInterval(() => {
+    const timeStep = timeSteps[index++];
+    reader.setUpdateTimeStep(timeStep);
+    index === timeSteps.length && (index = 0);
     callback();
   }, ms);
 }

@@ -1,6 +1,7 @@
 import { RefObject, useEffect, useRef } from 'react';
 import vtkActor from '@kitware/vtk.js/Rendering/Core/Actor';
 import vtkDataSet from '@kitware/vtk.js/Common/DataModel/DataSet';
+import vtkHttpDataSetSeriesReader from '@kitware/vtk.js/IO/Core/HttpDataSetSeriesReader';
 import {
   initVtk,
   loadSeriesVtpFile,
@@ -9,24 +10,32 @@ import {
   createScalarBar,
   loadVtkFile,
   loadVtpFile,
+  loadWithHttpDataSet,
+  loadWithHttpDataSetSeries,
+  playTimeSteps,
 } from './scripts';
 import { VtkFileType } from '@/utils/enum';
 
-let timer: NodeJS.Timer;
+let timers: NodeJS.Timer[] = [];
 
 interface Props {
-  fileType: VtkFileType;
   url: string | string[];
+  fileType?: VtkFileType;
+  isSeries?: boolean;
+  isHttpDataSet?: boolean;
 }
 
 export default function (props: Props) {
-  const { fileType, url } = props;
+  const { url, fileType, isSeries, isHttpDataSet } = props;
   const renderRef: RefObject<HTMLDivElement> = useRef(null);
 
   useEffect(() => {
     init();
     return () => {
-      clearInterval(timer);
+      while (timers.length) {
+        const timer = timers.pop();
+        clearInterval(timer);
+      }
     };
   }, []);
 
@@ -42,43 +51,71 @@ export default function (props: Props) {
     // 加载文件
     let actor: vtkActor | null = null;
     let seriesDataset: vtkDataSet[] = [];
-    switch (fileType) {
-      case VtkFileType.VTK:
-        if (typeof url === 'string') {
-          const res = await loadVtkFile(url);
-          if (res) {
-            actor = res;
-          }
-        } else {
-          // todo: loadSeriesVtkFile
-        }
-        break;
-      case VtkFileType.VTP:
-        if (typeof url === 'string') {
-          const res = await loadVtpFile(url);
-          if (res) {
-            actor = res;
-          }
-        } else {
-          const res = await loadSeriesVtpFile(url);
+    let reader: vtkHttpDataSetSeriesReader | null = null;
+    let timeSteps: number[] = [];
+    try {
+      if (isHttpDataSet) {
+        const _url = url as string;
+        if (isSeries) {
+          const res = await loadWithHttpDataSetSeries(_url);
           if (res) {
             actor = res.actor;
-            seriesDataset = res.seriesDataset;
+            reader = res.reader;
+            timeSteps = res.timeSteps;
+          }
+        } else {
+          const res = await loadWithHttpDataSet(_url);
+          res && (actor = res);
+        }
+      } else {
+        if (isSeries) {
+          const _url = url as string[];
+          switch (fileType) {
+            case VtkFileType.VTK:
+              break;
+            case VtkFileType.VTP:
+              const res = await loadSeriesVtpFile(_url);
+              if (res) {
+                actor = res.actor;
+                seriesDataset = res.seriesDataset;
+              }
+              break;
+          }
+        } else {
+          const _url = url as string;
+          if (fileType === VtkFileType.VTK) {
+            const res = await loadVtkFile(_url);
+            res && (actor = res);
+          } else if (fileType === VtkFileType.VTP) {
+            const res = await loadVtpFile(_url);
+            res && (actor = res);
           }
         }
+      }
+    } catch (e: any) {
+      console.error(e);
     }
 
     if (actor) {
-      // 播放序列集
+      // 根据序列集播放动画
       if (seriesDataset.length) {
-        timer = playSeriesDataset(actor, seriesDataset, 300, () => {
+        const timer = playSeriesDataset(actor, seriesDataset, 300, () => {
           renderer.resetCamera();
           renderWindow.render();
         });
+        timers.push(timer);
       }
-      // // 设置颜色映射
+      // 根据时间步数播放动画
+      if (reader && timeSteps.length) {
+        const timer = playTimeSteps(reader, timeSteps, 300, () => {
+          renderer.resetCamera();
+          renderWindow.render();
+        });
+        timers.push(timer);
+      }
+      // 设置颜色映射
       setLookupTable(actor);
-      // // 创建颜色标尺
+      // 创建颜色标尺
       const scalarBar = createScalarBar(actor);
       scalarBar && renderer.addActor(scalarBar);
       // 将演员加载进场景并渲染

@@ -114,7 +114,7 @@ const configuration: webpack.Configuration = {
       },
       // VTK
       {
-        test: /\.(vtk|vtp|e)$/i,
+        test: /\.(vtk|vtp|vtu|vtkjs|e)$/i,
         use: 'file-loader',
       },
     ],

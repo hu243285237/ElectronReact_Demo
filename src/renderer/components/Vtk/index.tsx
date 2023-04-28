@@ -13,6 +13,7 @@ import {
   loadWithHttpDataSet,
   loadWithHttpDataSetSeries,
   playTimeSteps,
+  loadScene,
 } from './scripts';
 import { VtkFileType } from '@/utils/enum';
 
@@ -23,10 +24,12 @@ interface Props {
   fileType?: VtkFileType;
   isSeries?: boolean;
   isHttpDataSet?: boolean;
+  isScene?: boolean;
+  isFileUrl?: boolean;
 }
 
 export default function (props: Props) {
-  const { url, fileType, isSeries, isHttpDataSet } = props;
+  const { url, fileType, isSeries, isHttpDataSet, isScene, isFileUrl } = props;
   const renderRef: RefObject<HTMLDivElement> = useRef(null);
 
   useEffect(() => {
@@ -54,7 +57,10 @@ export default function (props: Props) {
     let reader: vtkHttpDataSetSeriesReader | null = null;
     let timeSteps: number[] = [];
     try {
-      if (isHttpDataSet) {
+      if (isScene) {
+        const _url = url as string;
+        await loadScene(renderer, _url, isFileUrl as boolean);
+      } else if (isHttpDataSet) {
         const _url = url as string;
         if (isSeries) {
           const res = await loadWithHttpDataSetSeries(_url);
@@ -120,9 +126,9 @@ export default function (props: Props) {
       scalarBar && renderer.addActor(scalarBar);
       // 将演员加载进场景并渲染
       renderer.addActor(actor);
-      renderer.resetCamera();
-      renderWindow.render();
     }
+    renderer.resetCamera();
+    renderWindow.render();
   };
 
   return <div ref={renderRef} />;

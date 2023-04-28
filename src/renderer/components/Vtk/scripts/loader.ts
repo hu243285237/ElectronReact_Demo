@@ -4,12 +4,15 @@ import '@kitware/vtk.js/IO/Core/DataAccessHelper/HttpDataAccessHelper';
 import '@kitware/vtk.js/IO/Core/DataAccessHelper/JSZipDataAccessHelper';
 import vtkActor from '@kitware/vtk.js/Rendering/Core/Actor';
 import vtkMapper from '@kitware/vtk.js/Rendering/Core/Mapper';
+import vtkRenderer from '@kitware/vtk.js/Rendering/Core/Renderer';
 import vtkDataSet from '@kitware/vtk.js/Common/DataModel/DataSet';
 import vtkPolyData from '@kitware/vtk.js/Common/DataModel/PolyData';
 import vtkPolyDataReader from '@kitware/vtk.js/IO/Legacy/PolyDataReader';
 import vtkXMLPolyDataReader from '@kitware/vtk.js/IO/XML/XMLPolyDataReader';
 import vtkHttpDataSetReader from '@kitware/vtk.js/IO/Core/HttpDataSetReader';
 import vtkHttpDataSetSeriesReader from '@kitware/vtk.js/IO/Core/HttpDataSetSeriesReader';
+import vtkHttpSceneLoader from '@kitware/vtk.js/IO/Core/HttpSceneLoader';
+import vtkDataAccessHelper from '@kitware/vtk.js/IO/Core/DataAccessHelper';
 import vtkHttpDataAccessHelper from '@kitware/vtk.js/IO/Core/DataAccessHelper/HttpDataAccessHelper';
 
 import { getDataTimeStep, setVisibleDataset } from './tool';
@@ -108,6 +111,54 @@ export async function loadSeriesVtpFile(
     );
     setVisibleDataset(actor, seriesDataset[0]);
     return { actor, seriesDataset };
+  } catch (e: any) {
+    console.error(e);
+  }
+}
+
+/**
+ * 加载场景
+ * @param renderer 渲染器
+ * @param url 场景地址
+ */
+export async function loadScene(
+  renderer: vtkRenderer,
+  url: string,
+  isFileUrl: boolean
+): Promise<void> {
+  try {
+    if (!isFileUrl) {
+      const sceneImporter = vtkHttpSceneLoader.newInstance({ fetchGzip: true });
+      sceneImporter.setRenderer(renderer);
+      sceneImporter.setUrl(url);
+      return new Promise((resolve) => {
+        // @ts-ignore
+        sceneImporter.onReady(() => {
+          resolve();
+        });
+      });
+    } else {
+      return new Promise((resolve) => {
+        fetchBinary(url).then((zipContent: ArrayBuffer) => {
+          const dataAccessHelper = vtkDataAccessHelper.get('zip', {
+            zipContent,
+            callback: (zip: any) => {
+              const sceneImporter = vtkHttpSceneLoader.newInstance({
+                fetchGzip: true,
+                // @ts-ignore
+                dataAccessHelper,
+              });
+              sceneImporter.setRenderer(renderer);
+              sceneImporter.setUrl('index.json');
+              // @ts-ignore
+              sceneImporter.onReady(() => {
+                resolve();
+              });
+            },
+          });
+        });
+      });
+    }
   } catch (e: any) {
     console.error(e);
   }

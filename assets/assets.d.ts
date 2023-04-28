@@ -43,3 +43,13 @@ declare module '*.vtp' {
   const content: string;
   export default content;
 }
+
+declare module '*.vtu' {
+  const content: string;
+  export default content;
+}
+
+declare module '*.vtkjs' {
+  const content: string;
+  export default content;
+}

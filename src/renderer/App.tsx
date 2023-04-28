@@ -20,13 +20,16 @@ const seriesVtpUrl = [
   'https://kitware.github.io/vtk-js-datasets/data/vtp/can/can_40.vtp',
 ];
 const httpDataSetUrl = 'https://kitware.github.io/vtk-js/data/cow.vtp';
+// import httpDataSetUrl from '@assets/vtu/het_bat_out_000_0.vtu';
 const seriesHttpDataSetUrl =
   'https://kitware.github.io/vtk-js-datasets/data/temporal';
+import fileSceneUrl from '@assets/vtkjs/StanfordDragon.vtkjs';
+const sceneUrl = 'https://kitware.github.io/vtk-js/data/scene';
 
 function Hello() {
   return (
     <div className="app-container">
-      <div className="Hello">
+      {/* <div className="Hello">
         <img width="100" alt="icon" src={icon} />
       </div>
       <h1>electron-react-boilerplate</h1>
@@ -55,7 +58,7 @@ function Hello() {
             Donate
           </button>
         </a>
-      </div>
+      </div> */}
       <ul className="vtk-container-list">
         <li className="vtk-container-item">
           <p>single .vtk file use polyDataReader</p>
@@ -69,6 +72,8 @@ function Hello() {
           <p>series .vtp file use XMLPolyDataReader and httpDataAccessHelper</p>
           <Vtk fileType={VtkFileType.VTP} url={seriesVtpUrl} isSeries />
         </li>
+      </ul>
+      <ul className="vtk-container-list">
         <li className="vtk-container-item">
           <p>single .vtp gz file use httpDataSetReader</p>
           <Vtk url={httpDataSetUrl} isHttpDataSet />
@@ -76,6 +81,14 @@ function Hello() {
         <li className="vtk-container-item">
           <p>series .vtp gz file use httpDataSetReaderSeries</p>
           <Vtk url={seriesHttpDataSetUrl} isHttpDataSet isSeries />
+        </li>
+        <li className="vtk-container-item">
+          <p>scene file use httpSceneLoader</p>
+          <Vtk url={sceneUrl} isScene />
+        </li>
+        <li className="vtk-container-item">
+          <p>.vtkjs scene file use httpSceneLoader and httpDataAccessHelper</p>
+          <Vtk url={fileSceneUrl} isScene isFileUrl />
         </li>
       </ul>
     </div>
